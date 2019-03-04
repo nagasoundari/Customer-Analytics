@@ -1,0 +1,244 @@
+---
+title: "Ex6_Team3"
+author: "Naga Soundari Balamurugan"
+date: "November 13, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+#Required libraries
+library(dplyr)
+library(gmodels)
+
+source("RFM_Functions.R")
+```
+
+
+```{r read data}
+tuscan_data <- read.csv("Tuscan_RFM_Data_R.csv")
+liftGainData <- read.csv("Lifts_and_Gain_Data_R.csv")
+
+colnames(liftGainData) <- c("RFM", "Customers", "Buyers")
+liftGainData = liftGainData[,1:3]
+
+liftGainData$ResponseRate <- liftGainData$Buyers/liftGainData$Customers
+
+```
+
+
+# Part I:  Preliminary and Quintile Analysis (Independent RFM)
+
+## 1.	What percent of customers responded (i.e. bought anything) from this catalog?
+
+```{r percent bought}
+total_no_customers <- nrow(tuscan_data)
+responded_customers <- tuscan_data %>% filter(buyer == 1)
+no_res_customers <- nrow(responded_customers)
+
+percent_responded <- (no_res_customers/total_no_customers) * 100
+percent_responded
+```
+
+>The percent of customer who responded from the catalog is 2.4556%
+
+## 2.	Of those who bought, what was the average dollars ordered from this catalog? 
+
+```{r avg dollar}
+avg_dollar <- mean(responded_customers$dollars)
+avg_dollar
+```
+
+>Average dollars ordered from the catalog is $104.2429.
+
+## 3.	Create quintile (i.e., split by 5) RFM scores for recency, frequency and monetary.
+
+```{r RFM score}
+data_rfm <- data.frame(ID = tuscan_data$ID, Recency = tuscan_data$last, 
+                       Frequency = tuscan_data$numords, Monetary = tuscan_data$totdol)
+RFM_score <- getIndependentScore(data_rfm)
+```
+
+## 4.	Create a bar chart showing the response rate (i.e., the proportion of customers who bought something) by recency quintile.
+
+```{r recency}
+# Need to sort RFM.score by Customer ID
+# Note that tuscan_data is sorted by ID!
+sortedRFM <- RFM_score[order(RFM_score$ID),] 
+
+
+# Crosstab of Recency Score vs. Buyer (did or did not buy offer)
+data_crosstab_Recency <- CrossTable(sortedRFM$R_Score, tuscan_data$buyer, prop.r = TRUE,
+      prop.c = FALSE, prop.t = FALSE, prop.chisq = FALSE, dnn = c("Recency", "Response"))
+
+# Bar Plot
+barplot(data_crosstab_Recency$prop.row[,2], main="Response rate", 
+  	xlab="Recency Segments")
+```
+
+## 5.	Create a bar chart showing the response rate by frequency quintile.
+
+```{r frequency}
+# Crosstab of Recency Score vs. Buyer (did or did not buy offer)
+data_crosstab_Frequency <- CrossTable(sortedRFM$F_Score, tuscan_data$buyer, prop.r = TRUE,
+      prop.c = FALSE, prop.t = FALSE, prop.chisq = FALSE, dnn = c("Frequency", "Response"))
+
+# Bar Plot
+barplot(data_crosstab_Frequency$prop.row[,2], main="Response rate", 
+  	xlab="Frequency Segments")
+```
+
+## 6.	Create a bar chart showing the response rate by monetary quintile.
+
+```{r Monetary}
+# Crosstab of Recency Score vs. Buyer (did or did not buy offer)
+data_crosstab_Monetary <- CrossTable(sortedRFM$M_Score, tuscan_data$buyer, prop.r = TRUE,
+      prop.c = FALSE, prop.t = FALSE, prop.chisq = FALSE, dnn = c("Monetary", "Response"))
+
+# Bar Plot
+barplot(data_crosstab_Monetary$prop.row[,2], main="Response rate", 
+  	xlab="Monetary Segments")
+```
+
+## 7.	What do the above bar charts reveal about the likelihood of response and the size of the order across the different recency, frequency, and monetary quintiles?
+
+> There is no significant difference between the quintiles. The quintiles based on all three factors have a similar response rate. Among all 3 factors, the segment 5 is highest and segment 2 is lowest only with a small difference. Thus, the likelihood of response does not get affected much by these factors.
+
+
+# Part II:  Profitability Analysis
+
+## 1.	If the firm would mail to all 96,551 customers, please calculate:
+### (a) the gross profit in dollars, 
+### (b) the gross profit as a % of gross sales, and 
+### (c) the return on marketing expenditures (gross profit/cost to mail catalogs) 
+
+```{r}
+gross_sales <- sum(responded_customers$dollars)
+catalog_cost <- 96551 * 1
+COGS <- 0.5 * gross_sales
+
+gross_profit_dollars <- gross_sales - catalog_cost - COGS
+gross_profit_dollars
+
+gross_profit_percent <- (gross_profit_dollars/gross_sales) * 100
+gross_profit_percent
+
+ret_expenditure <- gross_profit_dollars/catalog_cost
+ret_expenditure
+```
+
+> Gross profit in dollars - $27029
+> Gross profit in percentage - 10.93583%
+> Return on marketing expenditures - 0.2799453
+
+
+## 2.	What is the breakeven response rate?
+
+```{r}
+#Breakeven response rate = (Cost of Marketing)/(Selling Price - Wholesale price - expenditure)
+
+profit <- (no_res_customers * avg_dollar) - COGS 
+
+breakeven_res_rate <- (catalog_cost/profit*percent_responded)
+breakeven_res_rate
+```
+
+>Breakeven response rate - 1.918595%
+
+## 3.	You can use the Data from the Lifts&Gains Excel Sheet provided or you can calculate the segment performance data by yourself (Basically, a cross-tab as discussed in class). Based on this new dataset (Lifts&Gains or your own), please answer the following questions
+
+### Determine which RFM segments have response rates exceeding the breakeven rate. 
+
+```{r}
+
+# data_crosstab_resRate <- CrossTable(sortedRFM$Total_Score, tuscan_data$buyer, prop.r = TRUE,
+#       prop.c = FALSE, prop.t = FALSE, prop.chisq = FALSE, dnn = c("RFM Segment", "Response"))
+# 
+# filteredSegments <- data_crosstab_resRate$prop.row[,2] > 0.0191
+# 
+# filteredSegmentsDF <- as.data.frame(filteredSegments)
+# filteredSegmentsDF$Segment <-  rownames(filteredSegmentsDF)
+# 
+# goodResRate <- filteredSegmentsDF %>% filter(filteredSegments == TRUE)
+
+filteredSegments <- liftGainData %>% filter(ResponseRate > 0.0191)
+filteredSegments
+```
+
+### Determine the number of customers belonging to these profitable segments.
+### Determine the number of buyers belonging to these profitable segments.
+
+```{r}
+cust_count <- sum(filteredSegments$Customers)
+buyer_count <- sum(filteredSegments$Buyers)
+cust_count
+buyer_count
+```
+
+>> No of customers belonging to profitable segments: 52544
+>> No of buyers belonging to profitable segments: 1758
+
+### What would the 
+### (a) the gross profit in dollars, 
+###	(b) the gross profit as a % of gross sales, and 
+###	(c) the return on marketing expenditures (gross profit/cost to mail catalogs) have been as a result of mailing the catalog only to those customers in the RFM cells with response rates exceeding the breakeven? 
+
+```{r}
+gross_revenue_RFM <- avg_dollar * no_res_customers
+
+gross_profit_RFM_dollars <- gross_revenue_RFM - (0.5 * gross_revenue_RFM) - catalog_cost
+gross_profit_RFM_dollars
+
+gross_profit_RFM_percent <- gross_profit_RFM_dollars/gross_revenue_RFM
+gross_profit_RFM_percent
+
+ret_expenditure_RFM <- gross_profit_RFM_dollars/catalog_cost
+ret_expenditure_RFM
+```
+
+>Gross profit in dollars for selected RFM segments: $27029
+>Gross profit in percentage for selected RFM segments: 10.93583%
+>The return on marketing expenditures for selected RFM segments: 0.2799453
+
+
+### Finally, generate a Lift&Gains chart as discussed in class comparing the RFM model to the no-model scenario. 
+
+```{r}
+liftGainData$quintile = floor(liftGainData$RFM/100)
+pivot_lift = aggregate(liftGainData[,c('Customers', 'Buyers')], by=list(liftGainData$quintile), FUN=sum)
+pivot_lift$cuml_cust = cumsum(pivot_lift$Customers)
+pivot_lift$cuml_cust_per = pivot_lift$cuml_cust/pivot_lift$cuml_cust[5]*100
+pivot_lift$cuml_buy = cumsum(pivot_lift$Buyers)
+pivot_lift$cuml_buy_per = pivot_lift$cuml_buy/pivot_lift$cuml_buy[5]*100
+pivot_lift$resrate = pivot_lift$Buyers / pivot_lift$Customers*100
+total_resrate = sum(pivot_lift$Buyers)/sum(pivot_lift$Customers)*100
+pivot_lift$Lift = pivot_lift$resrate/total_resrate*100  
+pivot_lift$gain_per = pivot_lift$Buyers/sum(pivot_lift$Buyers)*100
+pivot_lift$gain_per_cum = cumsum(pivot_lift$gain_per)
+pivot_lift
+```
+
+> Plotting a banana plot
+
+```{r}
+options(warn=-1)
+plot(pivot_lift$cuml_cust_per, pivot_lift$Lift, xlab = 'Cumulative Customer %', ylab = 'Lifts')
+lines(pivot_lift$cuml_cust_per, pivot_lift$Lift, type = 'l')
+abline(h = 100, col = "red")
+legend("topleft", legend=c("Lift", "No Model"),
+       col=c("black", "red"), lty=1:2, cex=0.8)
+```
+
+
+> plot2
+
+```{r}
+options(warn=-1)
+plot(pivot_lift$gain_per_cum ~ pivot_lift$cuml_cust_per, xlab = 'Cumulative Customer %', ylab = 'Lifts')
+lines(pivot_lift$gain_per_cum ~ pivot_lift$cuml_cust_per, type = 'l')
+
+```
+

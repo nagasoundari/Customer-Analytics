@@ -1,0 +1,169 @@
+---
+title: "Ex_4_Solution"
+author: "Naga Soundari, Manasi, Mervin, Aditya"
+date: "October 16, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Data
+
+```{r load data, message=FALSE}
+# Read in the Data
+priceData = read.csv("Ex4_Data_R.csv")
+
+# Explore the data
+str(priceData)
+summary(priceData)
+```
+
+## PREPARE DATA
+ 
+In our case we have to create new variables: log(Visitors), Visitors^2, and Lag(Day)
+
+```{r}
+
+# Create log Advertising (we have done this for price so look it up!)
+priceData$logSpent <- log(priceData$Total.Spent)
+
+# Create Advertising^2
+priceData$sqSpent <- (priceData$Total.Spent)^2
+
+# Create LAG Sales
+priceData$laggedVisitors <- c(NA, head(priceData$Visitors, -1))
+
+# Display the data
+summary(priceData)
+```
+
+
+### Question 1: Short run response
+
+## REGRESSION MODELS
+
+1) Define y (Dependent Variable). For this example, Visitors is used.
+
+2) Define X (Independent Variables). For this example, Total.Spent is used.
+
+3) Run the Models. For example, a linear model where No of visitors (Visitors) is a function of total money spent (Total.Spent)
+
+>(a) Fit the following three models of advertising-click response (at this stage we will not add other information to the model; keep things simple and stick to advertising), report your results and comment, briefly.
+
+```{r short run}
+###Simple Linear
+# Run the Regression (includes an INTERCEPT)
+linearModel <- lm(Visitors ~ Total.Spent, data = priceData)
+summary(linearModel)
+
+###Concave Logarithmic
+# Run the Regression (includes an INTERCEPT)
+concaveLogModel <- lm(Visitors ~ logSpent, data = priceData)
+summary(concaveLogModel)
+
+###Concave Quadratic
+# Run the Regression (includes an INTERCEPT)
+concaveQuadModel <- lm(Visitors ~ Total.Spent + sqSpent, data = priceData)
+summary(concaveQuadModel)
+```
+
+
+> (b)	Compute the advertising elasticity implied by each model (use July's monthly clicks and advertising spent to scale the elasticities).
+
+
+```{r short run elasticity}
+
+# Making a subset of July data
+priceData.july <- priceData[(substr(priceData$Day,1,1) == '7'),]
+
+
+meanVisitors <- mean(priceData.july$Visitors)
+meanSpent <- mean(priceData.july$Total.Spent)
+
+#linear model elasticity
+elasticity_lm <- linearModel$coefficients[2] * (meanSpent/meanVisitors)
+elasticity_lm
+
+#Concave Logarithmic model elasticity
+elasticity_conLog <- concaveLogModel$coefficients[2] * (1/meanVisitors)
+elasticity_conLog
+
+#Concave Quadratic model elasticity
+elasticity_conQuad <- (concaveQuadModel$coefficients[2] + 
+                         (2 * concaveQuadModel$coefficients[3]) * meanSpent) * (meanSpent/meanVisitors)
+elasticity_conQuad
+```
+
+> (c)	Which model is best?  Which, if any, would you reject?
+
+Out of the three models, Linear regression model has the lowest R squared value. Also, going with the linear model could be a bit dicey for us because there are fewer data points, and the model doesn't fit accurately with fewer data points. Between the other two models, as both of them have similar Rsquared value, we would consider **Concave Logarithmic** model as it is simpler than the other. Also the F-statistic value is higher for Concave logarithmic model which means it explains more variance. In addition, the advertising models do not fit well with the concave quadratic model.
+
+### Question 2: Long run response
+
+> (a)	Fit the same three models of advertising response but incorporate an exponentially decaying lag effect for advertising. Report your results and briefly comment.
+
+```{r long run}
+###Linear with carry-over
+# Run the Regression (includes an INTERCEPT)
+linearModel_lag <- lm(Visitors ~ Total.Spent + laggedVisitors, data = priceData)
+summary(linearModel_lag)
+
+###Concave Logarithmic with carry-over
+# Run the Regression (includes an INTERCEPT)
+concaveLogModel_lag <- lm(Visitors ~ logSpent + laggedVisitors, data = priceData)
+summary(concaveLogModel_lag)
+
+###Concave Quadratic with carry-over
+# Run the Regression (includes an INTERCEPT)
+concaveQuadModel_lag <- lm(Visitors ~ Total.Spent + sqSpent + laggedVisitors, data = priceData)
+summary(concaveQuadModel_lag)
+```
+
+>(b)	Compute the long-run advertising elasticity implied by each model (again use July's monthly figures for scaling).
+
+```{r long run elasticity}
+#linear model elasticity
+elasticity_lm_lag <- (linearModel_lag$coefficients[2]/(1 - 
+                                                         (linearModel_lag$coefficients[3]))) * 
+  (meanSpent/meanVisitors)
+elasticity_lm_lag
+
+#Concave Logarithmic model elasticity
+elasticity_conLog_lag <- (concaveLogModel_lag$coefficients[2]/(1 - 
+(concaveLogModel_lag$coefficients[3]))) *
+ (1/meanVisitors)
+elasticity_conLog_lag
+
+#Concave Quadratic model elasticity
+elasticity_conQuad_lag <- ((concaveQuadModel_lag$coefficients[2] + 
+                              (2 * concaveQuadModel_lag$coefficients[3]) * meanSpent)/(1 - 
+                                  (concaveQuadModel_lag$coefficients[4]))) *
+  (meanSpent/meanVisitors)
+elasticity_conQuad_lag
+
+```
+
+>(c)	Which model is best?  Which, if any, would you reject?
+
+Running the three models with carryover effects which is the result of immediate plus lagged values, we get the same results in all the three models. The way to justify the reliability of the model is to look at the R squared and the p value. Looking at the three, we see that the adjusted R squared is ~0.9 and for the p-value, all the co-efficients in Linear model have significant values compared to the other models which talk more about the reliability of the model. Also stating the fact, that Linear model is the simplest, it would be a wise choice to go with the **Linear model**. 
+
+If there is any model we need to reject, Concave Quadratic would be the one. Reason being, the significance of the co-efficients is least observed in Concave Quad. 
+
+
+### Question 3: Saturation.  
+
+>Drawing on the models that you fitted above, compute the saturation level for advertising spending.  Report results in terms of daily advertising spending.
+
+```{r Saturation}
+saturationWithoutLag <- -(concaveQuadModel$coefficients[2]/(2 * concaveQuadModel$coefficients[3]))
+saturationWithoutLag
+
+saturationWithLag <- -(concaveQuadModel_lag$coefficients[2]/(2 * concaveQuadModel_lag$coefficients[3]))
+saturationWithLag
+```
+
+
+The saturation level indiciates the cap amount or threshold. We applied the formula (-(b1/2b2)) and looking at the value without the carryover, we can conclude that the model does good as long as it's advertising investment is **1150 or under per day**. The same goes for value with carryover. As carryover also carries the lag with it, the advertising investment can't be more than **3447 per day**. If it is, we would say that our model/strategy is not doing good.
+

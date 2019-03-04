@@ -1,0 +1,161 @@
+---
+title: "Ex5_Scoring"
+author: "Naga Soundari Balamurugan"
+date: "November 5, 2018"
+output: pdf_document
+---
+
+##### Team: Naga Soundari Balamurugan, Aditya Wakade, Manasi Kulkarni, Mervin christo Daniel
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+#Install required libraries
+library(kableExtra)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r Read file}
+#Read both the estimation and holdout file
+estimationList <- read.csv("Data_Estimation_R.csv", header = TRUE)
+holdOutList <- read.csv("Data_Holdout_R.csv", header = TRUE)
+
+```
+
+### 1. Predict y (i.e., the decision to join the club) as a function of the available scoring variables (gender and hl.) using a logistic regression approach. Include an intercept term to account for a base response rate. Keep all coefficients (i.e., do not eliminate coefficients which seems to be statistically insignificant).
+
+```{r Training logistic model}
+#Create the training model
+logisModel <- glm(y ~ as.factor(gender) + hl1 + hl2 + hl3 + hl5 + hl6, 
+                  family = binomial(link = "logit"), 
+                  data = estimationList)
+
+summary(logisModel)
+```
+
+### 2.	Based on your score function, score all individuals on the holdout-list (you can do this manually or adapt the R code from class). Using your model, compute (for each individual): (a) predicted response rate, (b) consequent lift (divide the predicted response rate by the average response rate in the estimation-list). 
+
+```{r training data}
+#Dividing and preparing training data
+x_train <- estimationList[c("id", "gender", "hl1", "hl2", "hl3", "hl5", "hl6")]
+y_train <- estimationList[c("y")]
+
+logisModel.train <- data.frame(ID = x_train$id,
+    BinaryLogitProbability =  predict(logisModel, x_train, type = c("response")),
+    BinaryLogitPredict = round(predict(logisModel, x_train, type =                                               c("response")), digits = 0))
+
+#Calculate average response rate of the training model
+avgResponseRate_train <- mean(logisModel.train$BinaryLogitProbability)
+
+
+```
+
+
+```{r}
+#Dividing and preparing test data
+x_test <- holdOutList[c("id", "gender", "hl1", "hl2", "hl3", "hl5", "hl6")]
+y_test <- holdOutList[c("y")]
+
+logisModel.predict <- data.frame(ID = x_test$id,
+  BinaryLogitProbability = predict(logisModel, x_test, type = c("response")),
+  BinaryLogitPredict = round(predict(logisModel, x_test, type =                                               c("response")), digits = 0))
+
+#Calculate the Consequent lift
+logisModel.predict$conseqLift <- logisModel.predict$BinaryLogitProbability/avgResponseRate_train
+
+#Consequent lift for top 10 rows
+kable(head(logisModel.predict, 10), "latex") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+### 3.	Sort the holdout-list in decreasing order of lift 
+
+```{r sort}
+#Sort the data in decresing order of consequent lift
+sortedList <- logisModel.predict[order(-logisModel.predict$conseqLift),] 
+```
+
+### 4.	Plot marginal response rate vs. number of solicitations made
+
+```{r plot}
+#Marginal response rate vs solicitations
+scatter.smooth(sortedList$BinaryLogitProbability, xlab = "n", ylab = "Marginal Response Rate", 
+               main = "Marginal response rate vs Number of solicitations made")
+```
+
+### 5.	We know that average CLV is $30 and the solicitation cost is $12. Based on the marginal cost rule determine who the CD club should send invitations to.
+
+```{r}
+avg_clv <- 30
+sol_cost <- 12
+margin <- sol_cost/avg_clv
+
+max_prob <- max(sortedList$BinaryLogitProbability[sortedList$BinaryLogitProbability > margin])
+sortedList[sortedList$BinaryLogitProbability > margin,]
+
+```
+
+
+
+### 6.	Compute the cumulative sum (aka running sum) for the predicted response rates in decreasing order. Plot the curve for curve for number of positive responses vs. number of solicitations made.
+
+```{r cumulative sum}
+
+sortedList$Sum_Probability <- 0
+sortedList$Sum_Probability[1] <- sortedList$BinaryLogitProbability[1]
+
+for(i in 2:nrow(sortedList)) {
+  sortedList$Sum_Probability[i] <- sortedList$Sum_Probability[i-1] +
+    sortedList$BinaryLogitProbability[i]
+}
+
+scatter.smooth(sortedList$Sum_Probability, xlab = "n", ylab = "Expected total no of responses", 
+               main = "Number of positive responses vs Number of solicitations made")
+
+```
+
+
+### 7.	The CD club has only 40 items of the collector's edition of "Pink Floyd's The Wall". Based on the limited supply rule, which prospects (and how many) on the hold-out list should the CD club send an invitation to?
+
+According to the limited supply rule, as we have only 40 items of the collector's edition of "Pink Floyd's The Wall", we should look the list the people who has the most probaility to purchase on seeing an invitation and limit the invitation to specific number of people. In order to calculate that specific number of people, we need to sort the people based on the probability of buying and filter all those that fall below the cumulative probability of 40.
+
+```{r}
+#Subsetting the data
+limited_subset <- sortedList %>% filter(Sum_Probability < 40)
+no_of_ppl <- nrow(limited_subset)
+no_of_ppl
+```
+
+> The invitation needs to be sent to 64 people.
+
+### 8.	Compute the cumulative sum (aka running sum) for the actual response rate (recall this is either 0 or 1) in decreasing order of predicted response rate. Plot the curve for curve for number of actual positive responses vs. number of solicitations made. Superimpose on this the curve obtained in step 6 above. 
+
+```{r Actual}
+sortedList$Sum_Actual <- 0
+sortedList$Sum_Actual[1] <- sortedList$BinaryLogitPredict[1]
+
+for(i in 2:nrow(sortedList)) {
+  sortedList$Sum_Actual[i] <- sortedList$Sum_Actual[i-1] + sortedList$BinaryLogitPredict[i]
+}
+
+scatter.smooth(sortedList$Sum_Actual, xlab = "n", ylab = "Expected total no of responses", 
+               main = "Number of positive responses vs Number of solicitations made")
+```
+
+
+```{r viz}
+sortedList$n <- c(1:300)
+
+ggplot(sortedList) +
+geom_line(aes(x = n, y = Sum_Actual, color = "Actual", group = 1)) +
+geom_line(aes(x = n, y = Sum_Probability, color = "Expected", group = 2)) +
+  xlab("n") + ylab("Actual and Expected response rate") + 
+  ggtitle("Comparison of Actual and Expected response rates")
+
+```
+
+> The expected model that we see ideally follows a nice curve. For the actual model that we calculated, the data follows a sharp structure without a curve. Thus, this model is over-predicting the values. An overfit model can cause the regression coefficients, p-values and the R squared to be misleading on the results of part 7. 
+

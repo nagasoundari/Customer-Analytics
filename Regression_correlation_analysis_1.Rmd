@@ -1,0 +1,104 @@
+---
+title: "MKTG 562 ASSGN PRICING"
+author: "Naga Soundari Balamurugan"
+date: "14 October 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Let us first import the data into the markdown
+```{r}
+data = read.csv('./Ex3_Data_R.csv')
+attach(data)
+```
+
+First let us run the analysis for the first App
+
+Linear model for App 1
+```{r}
+y = UNITS1
+x1 = REGPR1
+x2 = FEAT1
+x3 = RATING1
+
+# Generating a linear model
+# Run the Regression (includes an INTERCEPT)
+linear.app1 <- lm(y ~ x1 + x2 + x3, data = data)
+summary(linear.app1)
+
+```
+
+Analysis:
+To interpret the results of the regression coefficients, let us first find the mean values of Sales, Price, Rating and Feature
+
+```{r}
+mean.price.app1 = mean(REGPR1)
+mean.feat.app1 = mean(FEAT1)
+mean.rating.app1 = mean(RATING1)
+mean.sales.app1 = mean(UNITS1)
+
+# Now let us find the coefficient for comparing effect of each feature
+(coeff.price.1 = (linear.app1$coefficients[2])*(mean.price.app1)/(mean.sales.app1))
+
+(coeff.feat.1 = (linear.app1$coefficients[3])*(mean.feat.app1)/(mean.sales.app1))
+
+(coeff.rating.1 = linear.app1$coefficients[4]*(mean.rating.app1)/(mean.sales.app1))
+
+```
+
+
+
+
+
+First let us run the analysis for the first App
+
+Semi Log model for App 1
+```{r}
+y = log(UNITS1)
+x1 = REGPR1
+x2 = FEAT1
+x3 = RATING1
+
+# Generating a semi log model
+# Run the Regression (includes an INTERCEPT)
+semilog.app1 <- lm(y ~ x1 + x2 + x3, data = data)
+summary(semilog.app1)
+```
+Interpreting the analysis of semi log model
+Analysis:
+To interpret the results of the regression coefficients, let us first find the mean values of Sales, Price, Rating and Feature
+
+```{r}
+mean.price.app1 = mean(REGPR1)
+mean.feat.app1 = mean(FEAT1)
+mean.rating.app1 = mean(RATING1)
+mean.sales.app1 = mean(UNITS1)
+
+# Now let us find the coefficient for comparing effect of each feature
+(coeff.price.1 = (semilog.app1$coefficients[2])*(mean.price.app1))
+
+(coeff.feat.1 = (semilog.app1$coefficients[3])*(mean.feat.app1))
+
+(coeff.rating.1 = semilog.app1$coefficients[4]*(mean.rating.app1))
+
+```
+
+
+
+First let us run the analysis for the first App
+
+Complete Log model for App 1
+```{r}
+y = log(UNITS1)
+x1 = log(REGPR1)
+x2 = FEAT1
+x3 = log(RATING1)
+
+# Generating a complete log model
+# Run the Regression (includes an INTERCEPT)
+log.app1 <- lm(y ~ x1 + x2 + x3, data = data)
+summary(log.app1)
+```

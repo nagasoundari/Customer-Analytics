@@ -1,0 +1,193 @@
+---
+title: "MKTG_Ex_3"
+author: "Naga Soundari Balamurugan"
+date: "October 14, 2018"
+output: pdf_document
+---
+
+```{r Read data, include=FALSE}
+appSalesData <- read.csv("Ex3_Data_R.csv")
+
+```
+
+
+```{r log, include=FALSE}
+#App1
+appSalesData$LogUNITS1 <- log(appSalesData$UNITS1)
+appSalesData$LogREGPR1 <- log(appSalesData$REGPR1)
+
+#App2
+appSalesData$LogUNITS2 <- log(appSalesData$UNITS2)
+appSalesData$LogREGPR2 <- log(appSalesData$REGPR2)
+
+#App3
+appSalesData$LogUNITS3 <- log(appSalesData$UNITS3)
+appSalesData$LogREGPR3 <- log(appSalesData$REGPR3)
+
+
+####################### Mean values for Coefficients Comparison ################################
+meanPriceApp1 <- mean(appSalesData$REGPR1)
+meanFeatApp1 <- mean(appSalesData$FEAT1)
+meanSalesApp1 <- mean(appSalesData$UNITS1)
+meanRatingApp1 <- mean(appSalesData$RATING1)
+
+meanPriceApp2 <- mean(appSalesData$REGPR2)
+meanFeatApp2 <- mean(appSalesData$FEAT2)
+meanSalesApp2 <- mean(appSalesData$UNITS2)
+meanRatingApp2 <- mean(appSalesData$RATING2)
+
+meanPriceApp3 <- mean(appSalesData$REGPR3)
+meanFeatApp3 <- mean(appSalesData$FEAT3)
+meanSalesApp3 <- mean(appSalesData$UNITS3)
+meanRatingApp3 <- mean(appSalesData$RATING3)
+```
+
+##Regression Models
+
+We need to find the variation in sales of each app from the changes in marketimg activity of the competing apps. The marketing activity referes to featuring of the app.
+
+1) Define y (Dependent Variable) which is UNIT(1,2,3).
+
+2) Define X (Independent Variables). In this case, we have X1 and X2 (Regular price, feature)
+
+3) Run the Models. For example, a linear model where Sales (Y) is a function of X1 and X2.
+
+```{r Question 2}
+###################################### App 1 ##################################################
+#Run the Regression (includes an INTERCEPT)
+linearModelApp1 <- lm(UNITS1 ~ REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+semiLogModelApp1 <- lm(LogUNITS1 ~ REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+logLogModelApp1 <- lm(LogUNITS1 ~ LogREGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+
+#Results
+summary(linearModelApp1)
+summary(semiLogModelApp1)
+summary(logLogModelApp1)
+
+
+######################################## App 2 ################################################
+#Run the Regression (includes an INTERCEPT)
+linearModelApp2 <- lm(UNITS2 ~ REGPR1 + FEAT1 + RATING1 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+semiLogModelApp2 <- lm(LogUNITS2 ~ REGPR1 + FEAT1 + RATING1 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+logLogModelApp2 <- lm(LogUNITS2 ~ LogREGPR1 + FEAT1 + RATING1 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+
+#Results
+summary(linearModelApp2)
+summary(semiLogModelApp2)
+summary(logLogModelApp2)
+
+
+######################################## App 3 ################################################
+#Run the Regression (includes an INTERCEPT)
+linearModelApp3 <- lm(UNITS3 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2, data = appSalesData)
+semiLogModelApp3 <- lm(LogUNITS3 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2, data = appSalesData)
+logLogModelApp3 <- lm(LogUNITS3 ~ LogREGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2, data = appSalesData)
+
+#Results
+summary(linearModelApp3)
+summary(semiLogModelApp3)
+summary(logLogModelApp3)
+
+```
+
+
+
+```{r Question 3}
+###Question 3
+#Run the Regression (includes an INTERCEPT) - App 1
+linearModel_App1 <- lm(UNITS1 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+semiLogModel_App1 <- lm(LogUNITS1 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+logLogModel_App1 <- lm(LogUNITS1 ~ REGPR1 + FEAT1 + RATING1 + LogREGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+
+summary(linearModel_App1)
+summary(semiLogModel_App1)
+summary(logLogModel_App1)
+
+#Linear Model
+coeffPrice1_lm_App1 <- (linearModel_App1$coefficients[2])*(meanPriceApp1)/(meanSalesApp1)
+coeffFeat1_lm_App1 <- (linearModel_App1$coefficients[3])*(meanFeatApp1)/(meanSalesApp1)
+coeffRating1_lm_App1 <- (linearModel_App1$coefficients[4])*(meanFeatApp1)/(meanSalesApp1)
+coeffPrice1_lm_App2 <- (linearModel_App1$coefficients[5])*(meanPriceApp2)/(meanSalesApp1)
+coeffFeat1_lm_App2 <- (linearModel_App1$coefficients[6])*(meanFeatApp2)/(meanSalesApp1)
+coeffRating1_lm_App2 <- (linearModel_App1$coefficients[7])*(meanFeatApp2)/(meanSalesApp1)
+coeffPrice1_lm_App3 <- (linearModel_App1$coefficients[8])*(meanPriceApp3)/(meanSalesApp1)
+coeffFeat1_lm_App3 <- (linearModel_App1$coefficients[9])*(meanFeatApp3)/(meanSalesApp1)
+coeffRating1_lm_App3 <- (linearModel_App1$coefficients[10])*(meanFeatApp3)/(meanSalesApp1)
+
+#Semi-Log Model
+coeffPrice1_semi_App1 <- (semiLogModel_App1$coefficients[2])*(meanPriceApp1)
+coeffFeat1_semi_App1 <- (semiLogModel_App1$coefficients[3])*(meanFeatApp1)
+coeffRating1_semi_App1 <- (semiLogModel_App1$coefficients[4])*(meanRatingApp1)
+coeffPrice1_semi_App2 <- (semiLogModel_App1$coefficients[5])*(meanPriceApp2)
+coeffFeat1_semi_App2 <- (semiLogModel_App1$coefficients[6])*(meanFeatApp2)
+coeffRating1_semi_App2 <- (semiLogModel_App1$coefficients[7])*(meanRatingApp2)
+coeffPrice1_semi_App3 <- (semiLogModel_App1$coefficients[8])*(meanPriceApp3)
+coeffFeat1_semi_App3 <- (semiLogModel_App1$coefficients[9])*(meanFeatApp3)
+coeffRating1_semi_App3 <- (semiLogModel_App1$coefficients[10])*(meanRatingApp3)
+
+
+#Run the Regression (includes an INTERCEPT) - App 2
+linearModel_App2 <- lm(UNITS2 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+semiLogModel_App2 <- lm(LogUNITS2 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+logLogModel_App2 <- lm(LogUNITS2 ~ REGPR1 + FEAT1 + RATING1 + LogREGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+
+summary(linearModel_App2)
+summary(semiLogModel_App2)
+summary(logLogModel_App2)
+
+#Linear Model
+coeffPrice2_lm_App1 <- (linearModel_App2$coefficients[2])*(meanPriceApp1)/(meanSalesApp2)
+coeffFeat2_lm_App1 <- (linearModel_App2$coefficients[3])*(meanFeatApp1)/(meanSalesApp2)
+coeffRating2_lm_App1 <- (linearModel_App2$coefficients[4])*(meanFeatApp1)/(meanSalesApp2)
+coeffPrice2_lm_App2 <- (linearModel_App2$coefficients[5])*(meanPriceApp2)/(meanSalesApp2)
+coeffFeat2_lm_App2 <- (linearModel_App2$coefficients[6])*(meanFeatApp2)/(meanSalesApp2)
+coeffRating2_lm_App2 <- (linearModel_App2$coefficients[7])*(meanFeatApp2)/(meanSalesApp2)
+coeffPrice2_lm_App3 <- (linearModel_App2$coefficients[8])*(meanPriceApp3)/(meanSalesApp2)
+coeffFeat2_lm_App3 <- (linearModel_App2$coefficients[9])*(meanFeatApp3)/(meanSalesApp2)
+coeffRating2_lm_App3 <- (linearModel_App2$coefficients[10])*(meanFeatApp3)/(meanSalesApp2)
+
+#Semi-Log Model
+coeffPrice2_semi_App1 <- (semiLogModel_App2$coefficients[2])*(meanPriceApp1)
+coeffFeat2_semi_App1 <- (semiLogModel_App2$coefficients[3])*(meanFeatApp1)
+coeffRating2_semi_App1 <- (semiLogModel_App2$coefficients[4])*(meanRatingApp1)
+coeffPrice2_semi_App2 <- (semiLogModel_App2$coefficients[5])*(meanPriceApp2)
+coeffFeat2_semi_App2 <- (semiLogModel_App2$coefficients[6])*(meanFeatApp2)
+coeffRating2_semi_App2 <- (semiLogModel_App2$coefficients[7])*(meanRatingApp2)
+coeffPrice2_semi_App3 <- (semiLogModel_App2$coefficients[8])*(meanPriceApp3)
+coeffFeat2_semi_App3 <- (semiLogModel_App2$coefficients[9])*(meanFeatApp3)
+coeffRating2_semi_App3 <- (semiLogModel_App2$coefficients[10])*(meanRatingApp3)
+
+
+
+#Run the Regression (includes an INTERCEPT) - App 3
+linearModel_App3 <- lm(UNITS3 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+semiLogModel_App3 <- lm(LogUNITS3 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+logLogModel_App3 <- lm(LogUNITS3 ~ REGPR1 + FEAT1 + RATING1 + LogREGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = appSalesData)
+
+summary(linearModel_App3)
+summary(semiLogModel_App3)
+summary(logLogModel_App3)
+
+#Linear Model
+coeffPrice3_lm_App1 <- (linearModel_App3$coefficients[2])*(meanPriceApp1)/(meanSalesApp3)
+coeffFeat3_lm_App1 <- (linearModel_App3$coefficients[3])*(meanFeatApp1)/(meanSalesApp3)
+coeffRating3_lm_App1 <- (linearModel_App3$coefficients[4])*(meanFeatApp1)/(meanSalesApp3)
+coeffPrice3_lm_App2 <- (linearModel_App3$coefficients[5])*(meanPriceApp2)/(meanSalesApp3)
+coeffFeat3_lm_App2 <- (linearModel_App3$coefficients[6])*(meanFeatApp2)/(meanSalesApp3)
+coeffRating3_lm_App2 <- (linearModel_App3$coefficients[7])*(meanFeatApp2)/(meanSalesApp3)
+coeffPrice3_lm_App3 <- (linearModel_App3$coefficients[8])*(meanPriceApp3)/(meanSalesApp3)
+coeffFeat3_lm_App3 <- (linearModel_App3$coefficients[9])*(meanFeatApp3)/(meanSalesApp3)
+coeffRating3_lm_App3 <- (linearModel_App3$coefficients[10])*(meanFeatApp3)/(meanSalesApp3)
+
+#Semi-Log Model
+coeffPrice3_semi_App1 <- (semiLogModel_App3$coefficients[2])*(meanPriceApp1)
+coeffFeat3_semi_App1 <- (semiLogModel_App3$coefficients[3])*(meanFeatApp1)
+coeffRating3_semi_App1 <- (semiLogModel_App3$coefficients[4])*(meanRatingApp1)
+coeffPrice3_semi_App2 <- (semiLogModel_App3$coefficients[5])*(meanPriceApp2)
+coeffFeat3_semi_App2 <- (semiLogModel_App3$coefficients[6])*(meanFeatApp2)
+coeffRating3_semi_App2 <- (semiLogModel_App3$coefficients[7])*(meanRatingApp2)
+coeffPrice3_semi_App3 <- (semiLogModel_App3$coefficients[8])*(meanPriceApp3)
+coeffFeat3_semi_App3 <- (semiLogModel_App3$coefficients[9])*(meanFeatApp3)
+coeffRating3_semi_App3 <- (semiLogModel_App3$coefficients[10])*(meanRatingApp3)
+
+```
